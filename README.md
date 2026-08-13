@@ -31,14 +31,16 @@ The PyPI name is `shotbible` (`pip install shotbible`) when published.
 ## 20-second quickstart
 
 ```bash
-shotbible init my-short
+shotbible init my-short --title "夜校最后一课" --aspect 9:16
 cd my-short
-shotbible character add mei --name "阿梅" --look "20s Chinese woman, short black hair, navy hoodie"
+shotbible character add mei --name "阿梅" --role lead --look "20s Chinese woman, short black hair, navy hoodie"
 shotbible scene add s01 --title "夜教室" --setting "empty classroom at night" --cast mei
 shotbible take add s01 --beat "she opens the laptop, does not look at camera"
-shotbible prompt s01 --character mei
+shotbible prompt s01 -o
 shotbible check
 ```
+
+`prompt -o` writes `takes/s01.prompt.txt`. Paste that file into your video model. New projects default to **9:16**.
 
 A ready-made 9:16 campus-night bible lives in [`examples/campus-night/bible.yaml`](examples/campus-night/bible.yaml).
 
@@ -51,14 +53,15 @@ A ready-made 9:16 campus-night bible lives in [`examples/campus-night/bible.yaml
 | `character add ID --name --look [--ref PATH]` | Lock a character (copies `--ref` into `refs/`) |
 | `character rm ID` | Remove a character (refuses if still cast) |
 | `scene add ID --title --setting --cast ID` | Lock a scene and its cast |
-| `scene rm ID` | Remove a scene (refuses if it still has takes) |
-| `take add SCENE --beat TEXT [--file PATH] [--model NAME]` | Record a take / beat |
-| `take rm ID` | Remove a take |
-| `prompt SCENE [--beat TEXT] [--character ID] [--kind image\|video]` | Compile a locked prompt |
-| `prompt-take TAKE` | Compile a locked prompt from a stored take |
-| `check` | Flag missing refs, unknown cast, empty scenes |
+| `scene rm ID` / `scene show ID` | Remove or print a scene |
+| `character show ID` | Print one character |
+| `take add SCENE --beat TEXT [--file PATH] [--model NAME]` | Record a take (copies `--file` into `takes/`) |
+| `take rm ID` / `take show ID` | Remove or print a take |
+| `prompt SCENE [-o [FILE]]` | Compile a locked prompt; `-o` saves it |
+| `prompt-take TAKE [-o [FILE]]` | Compile from a stored take |
+| `check [--strict] [--json]` | Validate; `--strict` fails on warnings |
 | `export [--format md\|json]` | Dump the bible |
-| `list` | Show characters, scenes, takes |
+| `list [--json]` | Show characters, scenes, takes |
 
 ## `bible.yaml`
 

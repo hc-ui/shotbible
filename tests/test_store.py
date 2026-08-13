@@ -9,6 +9,7 @@ from shotbible.store import (
     StoreError,
     add_take,
     copy_ref,
+    copy_take_file,
     init_project,
     load,
     save,
@@ -124,6 +125,15 @@ def test_copy_ref_does_not_overwrite_same_name(tmp_path: Path) -> None:
     assert rel2 == "refs/mei/face-2.png"
     assert (root / rel1).read_bytes().endswith(b"one")
     assert (root / rel2).read_bytes().endswith(b"two")
+
+
+def test_copy_take_file_lands_under_takes(tmp_path: Path) -> None:
+    root = init_project(tmp_path / "clips")
+    src = tmp_path / "out.mp4"
+    src.write_bytes(b"fake-mp4")
+    rel = copy_take_file(root, src, "t001")
+    assert rel == "takes/t001/out.mp4"
+    assert (root / rel).read_bytes() == b"fake-mp4"
 
 
 def test_load_explicit_missing_dir_does_not_walk_up(tmp_path: Path) -> None:

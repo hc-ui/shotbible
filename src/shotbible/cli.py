@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
+
+import yaml
 
 from . import __version__
 from .check import check_bible
@@ -13,6 +16,7 @@ from .store import (
     StoreError,
     add_take,
     copy_ref,
+    copy_take_file,
     init_project,
     load,
     remove_character,
@@ -75,6 +79,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_char_rm = char_sub.add_parser("rm", parents=[common], help="remove a character")
     p_char_rm.add_argument("id", metavar="ID")
     p_char_rm.set_defaults(func=cmd_character_rm)
+    p_char_show = char_sub.add_parser("show", parents=[common], help="print one character")
+    p_char_show.add_argument("id", metavar="ID")
+    p_char_show.set_defaults(func=cmd_character_show)
 
     p_scene = sub.add_parser("scene", parents=[common], help="manage scenes")
     scene_sub = p_scene.add_subparsers(dest="scene_cmd", required=True)
@@ -90,6 +97,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_scene_rm = scene_sub.add_parser("rm", parents=[common], help="remove a scene")
     p_scene_rm.add_argument("id", metavar="ID")
     p_scene_rm.set_defaults(func=cmd_scene_rm)
+    p_scene_show = scene_sub.add_parser("show", parents=[common], help="print one scene")
+    p_scene_show.add_argument("id", metavar="ID")
+    p_scene_show.set_defaults(func=cmd_scene_show)
 
     p_take = sub.add_parser("take", parents=[common], help="manage takes")
     take_sub = p_take.add_subparsers(dest="take_cmd", required=True)
@@ -105,6 +115,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_take_rm = take_sub.add_parser("rm", parents=[common], help="remove a take")
     p_take_rm.add_argument("take_id", metavar="TAKE_ID")
     p_take_rm.set_defaults(func=cmd_take_rm)
+    p_take_show = take_sub.add_parser("show", parents=[common], help="print one take")
+    p_take_show.add_argument("take_id", metavar="TAKE_ID")
+    p_take_show.set_defaults(func=cmd_take_show)
 
     p_set = sub.add_parser("set", parents=[common], help="update project title, aspect, style")
     p_set.add_argument("--title", default=None)
@@ -118,6 +131,15 @@ def build_parser() -> argparse.ArgumentParser:
     p_prompt.add_argument("--beat", default=None, metavar="TEXT")
     p_prompt.add_argument("--character", default=None, metavar="ID")
     p_prompt.add_argument("--kind", choices=("image", "video"), default="video")
+    p_prompt.add_argument(
+        "-o",
+        "--output",
+        nargs="?",
+        const="",
+        default=None,
+        metavar="FILE",
+        help="write prompt to FILE (default: takes/<scene>.prompt.txt)",
+    )
     p_prompt.set_defaults(func=cmd_prompt)
 
     p_prompt_take = sub.add_parser(
@@ -127,9 +149,20 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_prompt_take.add_argument("take_id", metavar="TAKE_ID")
     p_prompt_take.add_argument("--kind", choices=("image", "video"), default="video")
+    p_prompt_take.add_argument(
+        "-o",
+        "--output",
+        nargs="?",
+        const="",
+        default=None,
+        metavar="FILE",
+        help="write prompt to FILE (default: takes/<id>.prompt.txt)",
+    )
     p_prompt_take.set_defaults(func=cmd_prompt_take)
 
     p_check = sub.add_parser("check", parents=[common], help="validate the bible")
+    p_check.add_argument("--strict", action="store_true", help="treat warnings as errors")
+    p_check.add_argument("--json", action="store_true", dest="as_json", help="print JSON")
     p_check.set_defaults(func=cmd_check)
 
     p_export = sub.add_parser("export", parents=[common], help="export markdown or JSON")
@@ -138,6 +171,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_export.set_defaults(func=cmd_export)
 
     p_list = sub.add_parser("list", parents=[common], help="list characters, scenes, and takes")
+    p_list.add_argument("--json", action="store_true", dest="as_json", help="print JSON")
     p_list.set_defaults(func=cmd_list)
 
     return parser
@@ -157,7 +191,7 @@ def cmd_init(args: argparse.Namespace) -> int:
     if args.aspect is not None:
         kwargs["aspect"] = args.aspect
     path = init_project(dest, **kwargs)
-    print(f"initialized {path} (title={kwargs.get('title', 'untitled')}, aspect={kwargs.get('aspect', '16:9')})")
+    print(f"initialized {path} (title={kwargs.get('title', 'untitled')}, aspect={kwargs.get('aspect', '9:16')})")
     return 0
 
 
@@ -235,6 +269,27 @@ def cmd_scene_add(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_character_show(args: argparse.Namespace) -> int:
+    _root, bible = _load(args)
+    character = require_character(bible, _require_id(args.id, "character"))
+    _print_yaml({"id": character.id, **character.to_dict()})
+    return 0
+
+
+def cmd_scene_show(args: argparse.Namespace) -> int:
+    _root, bible = _load(args)
+    scene = require_scene(bible, _require_id(args.id, "scene"))
+    _print_yaml({"id": scene.id, **scene.to_dict()})
+    return 0
+
+
+def cmd_take_show(args: argparse.Namespace) -> int:
+    _root, bible = _load(args)
+    take = _require_take(bible, args.take_id)
+    _print_yaml(take.to_dict())
+    return 0
+
+
 def cmd_character_rm(args: argparse.Namespace) -> int:
     root, bible = _load(args)
     cid = _require_id(args.id, "character")
@@ -304,55 +359,65 @@ def cmd_take_add(args: argparse.Namespace) -> int:
             scene=sid,
             beat=args.beat,
             character=character_id,
-            file=args.file or "",
+            file="",
             model=args.model or "",
             duration=duration,
             notes=args.notes or "",
         ),
     )
+    if args.file:
+        take.file = copy_take_file(root, Path(args.file), take.id)
     save(root, bible)
-    print(f"take {take.id} added (scene={sid})")
+    extra = f" file={take.file}" if take.file else ""
+    print(f"take {take.id} added (scene={sid}{extra})")
     return 0
 
 
 def cmd_prompt(args: argparse.Namespace) -> int:
-    _root, bible = _load(args)
+    root, bible = _load(args)
     sid = _require_id(args.scene, "scene")
     require_scene(bible, sid)
     character_id = args.character or ""
     if character_id:
         require_character(bible, character_id)
-    print(
-        compile_prompt(
-            bible,
-            sid,
-            beat=args.beat or "",
-            character_id=character_id,
-            kind=args.kind,
-        )
+    text = compile_prompt(
+        bible,
+        sid,
+        beat=args.beat or "",
+        character_id=character_id,
+        kind=args.kind,
     )
-    return 0
+    return _emit_prompt(root, text, args.output, f"{sid}.prompt.txt")
 
 
 def cmd_prompt_take(args: argparse.Namespace) -> int:
-    _root, bible = _load(args)
+    root, bible = _load(args)
     take = _require_take(bible, args.take_id)
-    print(compile_take(bible, take, kind=args.kind))
-    return 0
+    text = compile_take(bible, take, kind=args.kind)
+    return _emit_prompt(root, text, args.output, f"{take.id}.prompt.txt")
 
 
 def cmd_check(args: argparse.Namespace) -> int:
     root, bible = _load(args)
     issues = check_bible(root, bible)
+    has_error = any(issue.level == "error" for issue in issues)
+    failed = has_error or (args.strict and bool(issues))
+    if args.as_json:
+        payload = {
+            "ok": not failed,
+            "issues": [
+                {"level": issue.level, "code": issue.code, "message": issue.message}
+                for issue in issues
+            ],
+        }
+        sys.stdout.write(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+        return 1 if failed else 0
     if not issues:
         print("ok")
         return 0
-    has_error = False
     for issue in issues:
         print(f"{issue.level:5} {issue.code}: {issue.message}")
-        if issue.level == "error":
-            has_error = True
-    return 1 if has_error else 0
+    return 1 if failed else 0
 
 
 def cmd_export(args: argparse.Namespace) -> int:
@@ -372,6 +437,9 @@ def cmd_export(args: argparse.Namespace) -> int:
 
 def cmd_list(args: argparse.Namespace) -> int:
     _root, bible = _load(args)
+    if args.as_json:
+        sys.stdout.write(json.dumps(_list_payload(bible), ensure_ascii=False, indent=2) + "\n")
+        return 0
     header = [bible.title, bible.aspect]
     if bible.duration_hint:
         header.append(bible.duration_hint)
@@ -417,6 +485,64 @@ def cmd_list(args: argparse.Namespace) -> int:
             bits.append(beat)
         print("  " + "  ".join(bits))
     return 0
+
+
+def _emit_prompt(root: Path, text: str, output: str | None, default_name: str) -> int:
+    if output is None:
+        print(text)
+        return 0
+    if output == "":
+        dest = root / "takes" / default_name
+    else:
+        dest = Path(output).expanduser()
+        if not dest.is_absolute():
+            dest = root / dest
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(text.rstrip() + "\n", encoding="utf-8", newline="\n")
+    print(f"wrote {dest}")
+    return 0
+
+
+def _print_yaml(data: object) -> None:
+    text = yaml.safe_dump(data, allow_unicode=True, sort_keys=False, default_flow_style=False)
+    sys.stdout.write(text if text.endswith("\n") else text + "\n")
+
+
+def _list_payload(bible) -> dict:
+    return {
+        "title": bible.title,
+        "aspect": bible.aspect,
+        "duration_hint": bible.duration_hint,
+        "style": bible.style,
+        "characters": [
+            {
+                "id": cid,
+                "name": character.name,
+                "role": character.role,
+                "refs": len(character.refs),
+            }
+            for cid, character in bible.characters.items()
+        ],
+        "scenes": [
+            {
+                "id": sid,
+                "title": scene.title,
+                "cast": list(scene.cast),
+                "takes": sum(1 for take in bible.takes if take.scene == sid),
+            }
+            for sid, scene in bible.scenes.items()
+        ],
+        "takes": [
+            {
+                "id": take.id,
+                "scene": take.scene,
+                "character": take.character,
+                "duration": take.duration,
+                "beat": take.beat,
+            }
+            for take in bible.takes
+        ],
+    }
 
 
 def _load(args: argparse.Namespace):

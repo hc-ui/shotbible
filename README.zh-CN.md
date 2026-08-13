@@ -31,14 +31,16 @@ PyPI 包名为 `shotbible`（发布后可用 `pip install shotbible`）。
 ## 20 秒上手
 
 ```bash
-shotbible init my-short
+shotbible init my-short --title "夜校最后一课" --aspect 9:16
 cd my-short
-shotbible character add mei --name "阿梅" --look "20s Chinese woman, short black hair, navy hoodie"
+shotbible character add mei --name "阿梅" --role lead --look "20s Chinese woman, short black hair, navy hoodie"
 shotbible scene add s01 --title "夜教室" --setting "empty classroom at night" --cast mei
 shotbible take add s01 --beat "she opens the laptop, does not look at camera"
-shotbible prompt s01 --character mei
+shotbible prompt s01 -o
 shotbible check
 ```
+
+`prompt -o` 会写出 `takes/s01.prompt.txt`，把文件内容贴进视频模型即可。新建项目默认 **9:16**。
 
 现成的 9:16 校园夜戏圣经见 [`examples/campus-night/bible.yaml`](examples/campus-night/bible.yaml)。
 
@@ -49,16 +51,16 @@ shotbible check
 | `init [dir]` | 创建 `bible.yaml`、`refs/`、`takes/` |
 | `set --title --aspect --style --duration-hint` | 改项目标题 / 画幅 / 风格 |
 | `character add ID --name --look [--ref PATH]` | 锁定角色（`--ref` 会复制到 `refs/`） |
-| `character rm ID` | 删除角色（仍被引用则拒绝） |
+| `character rm ID` / `character show ID` | 删除或查看角色 |
 | `scene add ID --title --setting --cast ID` | 锁定场景与出场角色 |
-| `scene rm ID` | 删除场景（仍有 take 则拒绝） |
-| `take add SCENE --beat TEXT [--file PATH] [--model NAME]` | 记录一条 take / beat |
-| `take rm ID` | 删除一条 take |
-| `prompt SCENE [--beat TEXT] [--character ID] [--kind image\|video]` | 编译锁定提示词 |
-| `prompt-take TAKE` | 按已存 take 编译锁定提示词 |
-| `check` | 检查缺失参考图、未知角色、空场景 |
+| `scene rm ID` / `scene show ID` | 删除或查看场景 |
+| `take add SCENE --beat TEXT [--file PATH] [--model NAME]` | 记录 take（`--file` 复制进 `takes/`） |
+| `take rm ID` / `take show ID` | 删除或查看 take |
+| `prompt SCENE [-o [FILE]]` | 编译锁定提示词；`-o` 存盘 |
+| `prompt-take TAKE [-o [FILE]]` | 按已存 take 编译 |
+| `check [--strict] [--json]` | 检查；`--strict` 把警告也当失败 |
 | `export [--format md\|json]` | 导出圣经 |
-| `list` | 列出角色、场景、takes |
+| `list [--json]` | 列出角色、场景、takes |
 
 ## `bible.yaml`
 

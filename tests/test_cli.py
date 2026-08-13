@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -162,7 +163,7 @@ def test_cli_version(capsys: pytest.CaptureFixture[str]) -> None:
     with pytest.raises(SystemExit) as exc:
         main(["--version"])
     assert exc.value.code == 0
-    assert "0.1.1" in capsys.readouterr().out
+    assert "0.1.2" in capsys.readouterr().out
 
 
 def test_cli_set_and_remove(
@@ -194,6 +195,76 @@ def test_cli_rejects_zero_duration(
     root, _bible = sample_project
     monkeypatch.chdir(root)
     assert main(["take", "add", "s01", "--beat", "x", "--duration", "0"]) == 2
+
+
+def test_cli_prompt_writes_default_file(
+    sample_project: tuple[Path, Bible],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root, _bible = sample_project
+    monkeypatch.chdir(root)
+    assert main(["prompt", "s01", "-o"]) == 0
+    dest = root / "takes" / "s01.prompt.txt"
+    assert dest.is_file()
+    text = dest.read_text(encoding="utf-8")
+    assert "阿梅" in text or "navy hoodie" in text
+
+
+def test_cli_check_json_and_strict(
+    sample_project: tuple[Path, Bible],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    root, bible = sample_project
+    monkeypatch.chdir(root)
+    bible.characters["mei"].refs = []
+    save(root, bible)
+    assert main(["check", "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["ok"] is True
+    assert any(item["code"] == "NO_REFS" for item in payload["issues"])
+    assert main(["check", "--strict"]) == 1
+
+
+def test_cli_list_json(
+    sample_project: tuple[Path, Bible],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    root, _bible = sample_project
+    monkeypatch.chdir(root)
+    assert main(["list", "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["title"] == TITLE
+    assert payload["characters"][0]["id"] == "mei"
+
+
+def test_cli_show_character(
+    sample_project: tuple[Path, Bible],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    root, _bible = sample_project
+    monkeypatch.chdir(root)
+    assert main(["character", "show", "mei"]) == 0
+    out = capsys.readouterr().out
+    assert "阿梅" in out
+    assert "navy hoodie" in out
+
+
+def test_cli_take_file_is_copied(
+    sample_project: tuple[Path, Bible],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root, _bible = sample_project
+    monkeypatch.chdir(root)
+    clip = root / "raw.mp4"
+    clip.write_bytes(b"clip")
+    assert main(["take", "add", "s01", "--beat", "another beat", "--file", str(clip)]) == 0
+    _, loaded = load(root)
+    last = loaded.takes[-1]
+    assert last.file.startswith("takes/")
+    assert (root / last.file).read_bytes() == b"clip"
 
 
 def test_cli_rejects_path_like_ids(

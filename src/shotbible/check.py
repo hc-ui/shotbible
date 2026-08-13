@@ -122,6 +122,38 @@ def check_bible(root: Path, bible: Bible) -> list[Issue]:
                 )
             )
 
+    used_characters: set[str] = set()
+    for scene in bible.scenes.values():
+        used_characters.update(scene.cast)
+    for take in bible.takes:
+        if take.character:
+            used_characters.add(take.character)
+    for cid in bible.characters:
+        if cid not in used_characters:
+            issues.append(
+                Issue(
+                    "warn",
+                    "UNUSED_CHARACTER",
+                    f"character '{cid}' is not used in any scene or take",
+                )
+            )
+
+    listed_refs = _listed_refs(bible)
+    refs_root = root / "refs"
+    if refs_root.is_dir():
+        for path in sorted(refs_root.rglob("*")):
+            if not path.is_file():
+                continue
+            rel = path.relative_to(root).as_posix()
+            if rel not in listed_refs:
+                issues.append(
+                    Issue(
+                        "warn",
+                        "ORPHAN_REF",
+                        f"file '{rel}' is not listed in the bible",
+                    )
+                )
+
     look_groups: dict[str, list[str]] = {}
     for cid, character in bible.characters.items():
         key = _normalize_look(character.look)
@@ -142,6 +174,15 @@ def check_bible(root: Path, bible: Bible) -> list[Issue]:
 
     issues.sort(key=lambda issue: (0 if issue.level == "error" else 1, issue.code, issue.message))
     return issues
+
+
+def _listed_refs(bible: Bible) -> set[str]:
+    listed: set[str] = set()
+    for character in bible.characters.values():
+        listed.update(character.refs)
+    for scene in bible.scenes.values():
+        listed.update(scene.refs)
+    return {Path(item).as_posix() for item in listed if item}
 
 
 def _ref_exists(root: Path, ref: str) -> bool:

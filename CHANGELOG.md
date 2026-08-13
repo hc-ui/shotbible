@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.2 — 2026-08-13
+
+- `prompt` / `prompt-take -o` write a prompt file (`takes/<id>.prompt.txt` by default)
+- `check --strict` and `check --json`; `list --json`
+- `character/scene/take show`
+- `take --file` is copied into `takes/<id>/`
+- Warn on unused characters and orphan files under `refs/`
+- New projects default to 9:16
+
 ## 0.1.1 — 2026-08-13
 
 - `check` no longer treats `non-lead` as a lead role

@@ -62,7 +62,7 @@ def save(root: Path, bible: Bible) -> None:
     tmp.replace(root / BIBLE_NAME)
 
 
-def init_project(dest: Path, title: str = "untitled", aspect: str = "16:9") -> Path:
+def init_project(dest: Path, title: str = "untitled", aspect: str = "9:16") -> Path:
     dest = dest.resolve()
     dest.mkdir(parents=True, exist_ok=True)
     bible_path = dest / BIBLE_NAME
@@ -90,10 +90,18 @@ def init_project(dest: Path, title: str = "untitled", aspect: str = "16:9") -> P
 
 
 def copy_ref(root: Path, src: Path, bucket: str) -> str:
+    return copy_asset(root, src, "refs", bucket)
+
+
+def copy_take_file(root: Path, src: Path, take_id: str) -> str:
+    return copy_asset(root, src, "takes", take_id)
+
+
+def copy_asset(root: Path, src: Path, kind: str, bucket: str) -> str:
     src = src.expanduser().resolve()
     if not src.is_file():
-        raise StoreError(f"reference file not found: {src}")
-    dest_dir = root / "refs" / _safe_id(bucket)
+        raise StoreError(f"file not found: {src}")
+    dest_dir = root / kind / _safe_id(bucket)
     dest_dir.mkdir(parents=True, exist_ok=True)
     dest = _unique_dest(dest_dir, src.name, src)
     if dest.resolve() != src:

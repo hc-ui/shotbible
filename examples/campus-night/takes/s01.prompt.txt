@@ -1,0 +1,19 @@
+AI video prompt — 夜校最后一课 / 夜教室
+
+Name: 阿梅
+Role: lead
+Look: 22-year-old Chinese woman, short black hair slightly damp from rain, oversized navy hoodie, worn canvas backpack, no makeup
+Voice: soft Mandarin, almost whispering, tired but steady
+
+Do not: change hair length; add glasses; smile at camera; change hoodie color
+
+Setting: empty university classroom at night, last row of desks, one open laptop glowing, rain on the windows
+Lighting: cool overhead fluorescent, faint city glow through wet glass
+Aspect: 9:16
+Style: cinematic 9:16, Chinese university campus at night, cool fluorescent mixed with sodium streetlight, quiet after rain
+
+Camera: slow push-in, 35mm, 9:16, handheld micro-shake, 45s
+
+Beat: 阿梅坐在最后一排，打开笔记本，屏幕亮起，她没有看镜头
+
+Single continuous shot, no jump cuts, no on-screen text, no subtitles.

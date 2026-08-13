@@ -121,6 +121,7 @@ def test_non_lead_does_not_require_refs(tmp_path: Path) -> None:
     save(root, bible)
     codes = _codes(check_bible(root, bible))
     assert "NO_REFS" not in codes
+    assert "UNUSED_CHARACTER" in codes
 
 
 def test_missing_take_file_is_error(tmp_path: Path) -> None:
@@ -132,6 +133,20 @@ def test_missing_take_file_is_error(tmp_path: Path) -> None:
     save(root, bible)
     issues = check_bible(root, bible)
     assert "MISSING_TAKE_FILE" in _codes(issues)
+
+
+def test_orphan_ref_is_warned(tmp_path: Path) -> None:
+    root = tmp_path / "orphan"
+    root.mkdir()
+    write_dummy_png(root / "refs" / "mei" / "front.png")
+    write_dummy_png(root / "refs" / "stray.png")
+    bible = make_sample_bible(with_ref=True, with_take=True)
+    save(root, bible)
+    issues = check_bible(root, bible)
+    assert "ORPHAN_REF" in _codes(issues)
+    issue = _by_code(issues, "ORPHAN_REF")
+    message = getattr(issue, "message", None) or issue["message"]  # type: ignore[index]
+    assert "stray.png" in str(message)
 
 
 def test_parse_duration_accepts_seconds_suffix() -> None:

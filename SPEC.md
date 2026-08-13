@@ -64,10 +64,12 @@ takes:
 - `shotbible scene rm ID`
 - `shotbible take add SCENE --beat TEXT [--file PATH] [--model NAME]`
 - `shotbible take rm ID`
-- `shotbible prompt SCENE [--beat TEXT] [--character ID] [--kind image|video]`
-- `shotbible check`
+- `shotbible character show ID` / `scene show` / `take show`
+- `shotbible prompt SCENE [-o [FILE]]`
+- `shotbible prompt-take TAKE [-o [FILE]]`
+- `shotbible check [--strict] [--json]`
 - `shotbible export [--format md|json]`
-- `shotbible list`
+- `shotbible list [--json]`
 
 ## Prompt compiler rules
 
@@ -93,6 +95,10 @@ If `prompt SCENE` is called without `--beat`, use the latest take of that scene.
 - warn if a scene has no takes
 - error if a take `file` is set but missing
 - error if two takes share an id
+- warn if a character is never used
+- warn if a file under `refs/` is not listed in the bible
+- `take --file` is copied into `takes/<id>/` like character refs
+- New projects default to `9:16`
 
 ## Privacy
 

@@ -153,7 +153,7 @@ class Take:
 @dataclass
 class Bible:
     title: str = "untitled"
-    aspect: str = "16:9"
+    aspect: str = "9:16"
     duration_hint: str = ""
     style: str = ""
     characters: dict[str, Character] = field(default_factory=dict)
@@ -180,7 +180,7 @@ class Bible:
             raise ParseError(f"invalid version: {version_raw!r}") from exc
         return cls(
             title=str(data.get("title") or "untitled"),
-            aspect=str(data.get("aspect") or "16:9"),
+            aspect=str(data.get("aspect") or "9:16"),
             duration_hint=str(data.get("duration_hint") or ""),
             style=str(data.get("style") or ""),
             characters={
