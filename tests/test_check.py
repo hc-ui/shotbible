@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from shotbible.check import check_bible
-from shotbible.models import Scene, Take
+from shotbible.models import Character, ParseError, Scene, Take, parse_duration
 from shotbible.store import save
 
 from conftest import make_sample_bible, write_dummy_png
@@ -103,3 +105,43 @@ def test_check_clean_bible_skips_required_codes(tmp_path: Path) -> None:
     assert "UNKNOWN_CHARACTER" not in codes
     assert "MISSING_REF" not in codes
     assert "SCENE_WITHOUT_TAKES" not in codes
+
+
+def test_non_lead_does_not_require_refs(tmp_path: Path) -> None:
+    root = tmp_path / "extra"
+    root.mkdir()
+    bible = make_sample_bible(with_ref=True, with_take=True)
+    write_dummy_png(root / "refs" / "mei" / "front.png")
+    bible.characters["extra"] = Character(
+        id="extra",
+        name="路人",
+        role="non-lead",
+        look="blurred extra in the hallway",
+    )
+    save(root, bible)
+    codes = _codes(check_bible(root, bible))
+    assert "NO_REFS" not in codes
+
+
+def test_missing_take_file_is_error(tmp_path: Path) -> None:
+    root = tmp_path / "clip"
+    root.mkdir()
+    write_dummy_png(root / "refs" / "mei" / "front.png")
+    bible = make_sample_bible(with_ref=True, with_take=True)
+    bible.takes[0].file = "takes/missing.mp4"
+    save(root, bible)
+    issues = check_bible(root, bible)
+    assert "MISSING_TAKE_FILE" in _codes(issues)
+
+
+def test_parse_duration_accepts_seconds_suffix() -> None:
+    assert parse_duration("6s") == 6
+    assert parse_duration(6) == 6
+    assert parse_duration(6.0) == 6
+    assert parse_duration(None) is None
+    with pytest.raises(ParseError):
+        parse_duration(0)
+    with pytest.raises(ParseError):
+        parse_duration(6.5)
+    with pytest.raises(ParseError):
+        parse_duration("nope")

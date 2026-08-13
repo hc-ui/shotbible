@@ -26,6 +26,7 @@ def test_init_creates_layout_and_bible(tmp_path: Path) -> None:
     assert (root / "bible.yaml").is_file()
     assert (root / "refs").is_dir()
     assert (root / "takes").is_dir()
+    assert (root / ".gitignore").is_file()
     loaded_root, bible = load(root)
     assert loaded_root == root.resolve()
     assert bible.title == TITLE
@@ -109,6 +110,45 @@ def test_copy_ref_writes_under_refs(tmp_path: Path) -> None:
     assert rel == "refs/mei/face.png"
     assert (root / rel).is_file()
     assert (root / rel).read_bytes().startswith(b"\x89PNG")
+
+
+def test_copy_ref_does_not_overwrite_same_name(tmp_path: Path) -> None:
+    root = init_project(tmp_path / "collide")
+    first = write_dummy_png(tmp_path / "a" / "face.png")
+    first.write_bytes(b"\x89PNG\r\n\x1a\none")
+    second = write_dummy_png(tmp_path / "b" / "face.png")
+    second.write_bytes(b"\x89PNG\r\n\x1a\ntwo")
+    rel1 = copy_ref(root, first, "mei")
+    rel2 = copy_ref(root, second, "mei")
+    assert rel1 == "refs/mei/face.png"
+    assert rel2 == "refs/mei/face-2.png"
+    assert (root / rel1).read_bytes().endswith(b"one")
+    assert (root / rel2).read_bytes().endswith(b"two")
+
+
+def test_load_explicit_missing_dir_does_not_walk_up(tmp_path: Path) -> None:
+    init_project(tmp_path / "parent")
+    empty = tmp_path / "parent" / "empty"
+    empty.mkdir()
+    with pytest.raises(StoreError, match="no bible.yaml"):
+        load(empty)
+
+
+def test_load_bible_yaml_path(tmp_path: Path) -> None:
+    root = init_project(tmp_path / "via-file", title="via-file")
+    loaded_root, bible = load(root / "bible.yaml")
+    assert loaded_root == root.resolve()
+    assert bible.title == "via-file"
+
+
+def test_load_invalid_duration_is_store_error(tmp_path: Path) -> None:
+    root = init_project(tmp_path / "bad-dur")
+    (root / "bible.yaml").write_text(
+        "version: 1\ntitle: x\ncharacters: {}\nscenes: {}\ntakes:\n  - id: t001\n    scene: s01\n    beat: x\n    duration: nope\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(StoreError, match="duration"):
+        load(root)
 
 
 def test_example_campus_night_loads() -> None:

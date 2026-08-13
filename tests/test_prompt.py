@@ -54,6 +54,13 @@ def test_compile_prompt_does_not_invent_wardrobe() -> None:
         assert item not in lowered, f"compiler invented wardrobe: {item}"
 
 
+def test_compile_prompt_defaults_beat_from_latest_take() -> None:
+    bible = make_sample_bible(with_take=True)
+    text = _text(compile_prompt(bible, "s01", kind="video"))
+    assert BEAT in text
+    assert NAME in text
+
+
 def test_compile_prompt_keeps_bible_only_details() -> None:
     bible = make_sample_bible()
     extra_beat = "she wipes the desk, still does not look at camera"

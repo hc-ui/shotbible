@@ -30,8 +30,35 @@ def check_bible(root: Path, bible: Bible) -> list[Issue]:
                 )
 
     taken_scenes: set[str] = set()
+    seen_take_ids: set[str] = set()
     for take in bible.takes:
         taken_scenes.add(take.scene)
+        if take.id:
+            if take.id in seen_take_ids:
+                issues.append(
+                    Issue(
+                        "error",
+                        "DUPLICATE_TAKE_ID",
+                        f"take id '{take.id}' is used more than once",
+                    )
+                )
+            seen_take_ids.add(take.id)
+        if not (take.beat or "").strip():
+            issues.append(
+                Issue(
+                    "warn",
+                    "EMPTY_BEAT",
+                    f"take '{take.id or '?'}' has an empty beat",
+                )
+            )
+        if take.file and not _ref_exists(root, take.file):
+            issues.append(
+                Issue(
+                    "error",
+                    "MISSING_TAKE_FILE",
+                    f"take '{take.id}' missing file '{take.file}'",
+                )
+            )
         if take.character and take.character not in bible.characters:
             issues.append(
                 Issue(
@@ -59,8 +86,7 @@ def check_bible(root: Path, bible: Bible) -> list[Issue]:
                         f"character '{cid}' missing ref '{ref}'",
                     )
                 )
-        role = character.role or ""
-        if ("lead" in role.lower() or role == "lead") and not character.refs:
+        if _is_lead(character.role) and not character.refs:
             issues.append(
                 Issue(
                     "warn",
@@ -129,3 +155,19 @@ def _ref_exists(root: Path, ref: str) -> bool:
 
 def _normalize_look(look: str) -> str:
     return " ".join((look or "").strip().lower().split())
+
+
+_LEAD_ROLES = {"lead", "主角", "女主", "男主"}
+
+
+def _is_lead(role: str) -> bool:
+    text = (role or "").strip().lower()
+    if not text:
+        return False
+    collapsed = text.replace("_", "-")
+    if "non-lead" in collapsed or collapsed.replace("-", "") == "nonlead":
+        return False
+    if text in _LEAD_ROLES:
+        return True
+    tokens = text.replace("_", " ").replace("-", " ").split()
+    return any(token in _LEAD_ROLES for token in tokens)

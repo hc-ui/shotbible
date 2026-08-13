@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .models import Bible, Character, Scene, Take
+from .models import Bible, Character, Scene, Take, parse_kind
 from .store import require_character, require_scene
 
 _VIDEO_CLOSER = "Single continuous shot, no jump cuts, no on-screen text, no subtitles."
@@ -26,6 +26,7 @@ def compile_prompt(
         character_id=character_id,
         kind=kind,
         duration=None,
+        fill_from_takes=True,
     )
 
 
@@ -37,6 +38,7 @@ def compile_take(bible: Bible, take: Take, kind: str = "video") -> str:
         character_id=take.character,
         kind=kind,
         duration=take.duration,
+        fill_from_takes=False,
     )
 
 
@@ -48,9 +50,18 @@ def _compile(
     character_id: str,
     kind: str,
     duration: int | None,
+    fill_from_takes: bool,
 ) -> str:
     scene = require_scene(bible, scene_id)
+    if fill_from_takes and (not (beat or "").strip() or not character_id):
+        take = _latest_take(bible, scene_id)
+        if take is not None:
+            if not (beat or "").strip():
+                beat = take.beat
+            if not character_id and take.character:
+                character_id = take.character
     character = _resolve_character(bible, scene, character_id)
+    kind = parse_kind(kind)
     sections = [
         f"AI {kind} prompt — {bible.title} / {scene.title}",
         _identity_lock(character),
@@ -59,10 +70,17 @@ def _compile(
         _camera_section(bible, scene, duration),
         _beat_section(beat),
         _ref_lock(character, scene),
-        _IMAGE_CLOSER if (kind or "").strip().lower() == "image" else _VIDEO_CLOSER,
+        _IMAGE_CLOSER if kind == "image" else _VIDEO_CLOSER,
     ]
     text = "\n\n".join(part for part in sections if part)
     return text.strip()
+
+
+def _latest_take(bible: Bible, scene_id: str) -> Take | None:
+    for take in reversed(bible.takes):
+        if take.scene == scene_id:
+            return take
+    return None
 
 
 def _resolve_character(bible: Bible, scene: Scene, character_id: str) -> Character | None:
@@ -118,7 +136,7 @@ def _camera_section(bible: Bible, scene: Scene, duration: int | None) -> str:
         parts.append(scene.camera)
     if bible.duration_hint:
         parts.append(bible.duration_hint)
-    if duration:
+    if duration is not None:
         parts.append(f"{duration}s")
     if not parts:
         return ""

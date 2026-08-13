@@ -3,8 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field, asdict
 from typing import Any, Literal
 
-
 Kind = Literal["image", "video"]
+VALID_KINDS = ("image", "video")
+
+
+class ParseError(ValueError):
+    pass
 
 
 def _list(value: Any) -> list[str]:
@@ -12,7 +16,38 @@ def _list(value: Any) -> list[str]:
         return []
     if isinstance(value, str):
         return [value]
-    return [str(x) for x in value]
+    if isinstance(value, (list, tuple)):
+        return [str(x) for x in value]
+    raise ParseError(f"expected a list, got {type(value).__name__}")
+
+
+def parse_duration(value: Any) -> int | None:
+    if value in ("", None):
+        return None
+    if isinstance(value, bool):
+        raise ParseError("duration cannot be a boolean")
+    if isinstance(value, (int, float)):
+        if int(value) != value:
+            raise ParseError("duration must be a whole number of seconds")
+        result = int(value)
+    else:
+        text = str(value).strip().lower()
+        if text.endswith("s") and text[:-1].lstrip("-").isdigit():
+            text = text[:-1]
+        try:
+            result = int(text)
+        except ValueError as exc:
+            raise ParseError(f"invalid duration: {value!r}") from exc
+    if result <= 0:
+        raise ParseError("duration must be a positive integer")
+    return result
+
+
+def parse_kind(value: Any) -> Kind:
+    kind = str(value or "video").strip().lower()
+    if kind not in VALID_KINDS:
+        raise ParseError(f"unknown kind: {value!r} (use image or video)")
+    return kind  # type: ignore[return-value]
 
 
 @dataclass
@@ -96,11 +131,7 @@ class Take:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Take":
-        duration = data.get("duration")
-        if duration in ("", None):
-            duration_i = None
-        else:
-            duration_i = int(duration)
+        duration_i = parse_duration(data.get("duration"))
         return cls(
             id=str(data.get("id") or ""),
             scene=str(data.get("scene") or ""),
@@ -136,21 +167,32 @@ class Bible:
         chars_raw = data.get("characters") or {}
         scenes_raw = data.get("scenes") or {}
         takes_raw = data.get("takes") or []
+        if chars_raw and not isinstance(chars_raw, dict):
+            raise ParseError("characters must be a mapping of id -> record")
+        if scenes_raw and not isinstance(scenes_raw, dict):
+            raise ParseError("scenes must be a mapping of id -> record")
+        if takes_raw and not isinstance(takes_raw, list):
+            raise ParseError("takes must be a list")
+        version_raw = data.get("version") or 1
+        try:
+            version = int(version_raw)
+        except (TypeError, ValueError) as exc:
+            raise ParseError(f"invalid version: {version_raw!r}") from exc
         return cls(
             title=str(data.get("title") or "untitled"),
             aspect=str(data.get("aspect") or "16:9"),
             duration_hint=str(data.get("duration_hint") or ""),
             style=str(data.get("style") or ""),
             characters={
-                cid: Character.from_dict(str(cid), c or {})
+                str(cid): Character.from_dict(str(cid), c if isinstance(c, dict) else {})
                 for cid, c in chars_raw.items()
             },
             scenes={
-                sid: Scene.from_dict(str(sid), s or {})
+                str(sid): Scene.from_dict(str(sid), s if isinstance(s, dict) else {})
                 for sid, s in scenes_raw.items()
             },
             takes=[Take.from_dict(t) for t in takes_raw if isinstance(t, dict)],
-            version=int(data.get("version") or 1),
+            version=version,
         )
 
     def to_dict(self) -> dict[str, Any]:

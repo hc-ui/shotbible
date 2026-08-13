@@ -57,9 +57,13 @@ takes:
 ## Commands
 
 - `shotbible init [dir]`
+- `shotbible set --title --aspect --style --duration-hint`
 - `shotbible character add ID --name --look --ref PATH`
+- `shotbible character rm ID`
 - `shotbible scene add ID --title --setting --cast ID`
+- `shotbible scene rm ID`
 - `shotbible take add SCENE --beat TEXT [--file PATH] [--model NAME]`
+- `shotbible take rm ID`
 - `shotbible prompt SCENE [--beat TEXT] [--character ID] [--kind image|video]`
 - `shotbible check`
 - `shotbible export [--format md|json]`
@@ -77,15 +81,18 @@ Always emit, in this order:
 6. "same character as reference images" if refs exist
 
 Never invent wardrobe or location details that are not in the bible.
+If `prompt SCENE` is called without `--beat`, use the latest take of that scene.
 
 ## Check rules
 
 - character referenced by scene/take must exist
 - ref files must exist
 - take.scene must exist
-- warn if a lead character has zero refs
+- warn if a lead / 主角 / 女主 / 男主 character has zero refs (`non-lead` is not a lead)
 - warn if two characters have nearly identical `look` strings
 - warn if a scene has no takes
+- error if a take `file` is set but missing
+- error if two takes share an id
 
 ## Privacy
 

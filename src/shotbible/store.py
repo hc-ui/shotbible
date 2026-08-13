@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import shutil
 from pathlib import Path
-from typing import Any
 
 import yaml
 
-from .models import Bible, Character, Scene, Take
+from .models import Bible, ParseError, Take
 
 BIBLE_NAME = "bible.yaml"
 
@@ -24,12 +23,27 @@ def project_root(start: Path | None = None) -> Path:
 
 
 def load(root: Path | None = None) -> tuple[Path, Bible]:
-    root = project_root(root) if root is None or not (root / BIBLE_NAME).is_file() else root.resolve()
+    if root is None:
+        root = project_root()
+    else:
+        root = Path(root).expanduser().resolve()
+        if root.is_file():
+            if root.name != BIBLE_NAME:
+                raise StoreError(f"not a {BIBLE_NAME}: {root}")
+            root = root.parent
+        elif not (root / BIBLE_NAME).is_file():
+            raise StoreError(f"no {BIBLE_NAME} in {root}")
     path = root / BIBLE_NAME
-    raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    try:
+        raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError as exc:
+        raise StoreError(f"invalid YAML in {path}: {exc}") from exc
     if not isinstance(raw, dict):
         raise StoreError(f"{path} is not a YAML mapping")
-    return root, Bible.from_dict(raw)
+    try:
+        return root, Bible.from_dict(raw)
+    except ParseError as exc:
+        raise StoreError(f"{path}: {exc}") from exc
 
 
 def save(root: Path, bible: Bible) -> None:
@@ -56,6 +70,22 @@ def init_project(dest: Path, title: str = "untitled", aspect: str = "16:9") -> P
         raise StoreError(f"already a shotbible project: {bible_path}")
     bible = Bible(title=title, aspect=aspect)
     save(dest, bible)
+    ignore = dest / ".gitignore"
+    if not ignore.exists():
+        ignore.write_text(
+            "\n".join(
+                [
+                    "takes/",
+                    "*.mp4",
+                    "*.mov",
+                    "*.webm",
+                    ".bible.yaml.tmp",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+            newline="\n",
+        )
     return dest
 
 
@@ -65,17 +95,30 @@ def copy_ref(root: Path, src: Path, bucket: str) -> str:
         raise StoreError(f"reference file not found: {src}")
     dest_dir = root / "refs" / _safe_id(bucket)
     dest_dir.mkdir(parents=True, exist_ok=True)
-    dest = dest_dir / src.name
+    dest = _unique_dest(dest_dir, src.name, src)
     if dest.resolve() != src:
         shutil.copy2(src, dest)
-    rel = dest.relative_to(root).as_posix()
-    return rel
+    return dest.relative_to(root).as_posix()
 
 
 def _safe_id(value: str) -> str:
     cleaned = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in value.strip())
     cleaned = cleaned.strip("-_") or "item"
     return cleaned
+
+
+def _unique_dest(dest_dir: Path, name: str, src: Path) -> Path:
+    dest = dest_dir / name
+    if not dest.exists() or dest.resolve() == src:
+        return dest
+    stem = dest.stem
+    suffix = dest.suffix
+    n = 2
+    while True:
+        candidate = dest_dir / f"{stem}-{n}{suffix}"
+        if not candidate.exists() or candidate.resolve() == src:
+            return candidate
+        n += 1
 
 
 def upsert_character(bible: Bible, character: Character) -> None:
@@ -107,5 +150,25 @@ def require_scene(bible: Bible, sid: str) -> Scene:
         raise StoreError(f"unknown scene: {sid}") from exc
 
 
-def as_plain(bible: Bible) -> dict[str, Any]:
-    return bible.to_dict()
+def remove_character(bible: Bible, cid: str) -> None:
+    require_character(bible, cid)
+    used_in = [sid for sid, scene in bible.scenes.items() if cid in scene.cast]
+    used_in += [take.id for take in bible.takes if take.character == cid]
+    if used_in:
+        raise StoreError(f"character '{cid}' is still used by: {', '.join(used_in)}")
+    del bible.characters[cid]
+
+
+def remove_scene(bible: Bible, sid: str) -> None:
+    require_scene(bible, sid)
+    blocking = [take.id for take in bible.takes if take.scene == sid]
+    if blocking:
+        raise StoreError(f"scene '{sid}' still has takes: {', '.join(blocking)}")
+    del bible.scenes[sid]
+
+
+def remove_take(bible: Bible, tid: str) -> Take:
+    for index, take in enumerate(bible.takes):
+        if take.id == tid:
+            return bible.takes.pop(index)
+    raise StoreError(f"unknown take: {tid}")

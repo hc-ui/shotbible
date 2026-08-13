@@ -6,7 +6,7 @@ import pytest
 
 from shotbible.cli import main
 from shotbible.models import Bible
-from shotbible.store import load, save
+from shotbible.store import init_project, load, save
 
 from conftest import BEAT, NAME, TITLE, write_dummy_png
 
@@ -162,4 +162,55 @@ def test_cli_version(capsys: pytest.CaptureFixture[str]) -> None:
     with pytest.raises(SystemExit) as exc:
         main(["--version"])
     assert exc.value.code == 0
-    assert "0.1.0" in capsys.readouterr().out
+    assert "0.1.1" in capsys.readouterr().out
+
+
+def test_cli_set_and_remove(
+    sample_project: tuple[Path, Bible],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    root, _bible = sample_project
+    monkeypatch.chdir(root)
+    assert main(["set", "--title", "新标题", "--aspect", "9:16"]) == 0
+    _, loaded = load(root)
+    assert loaded.title == "新标题"
+    assert loaded.aspect == "9:16"
+
+    assert main(["take", "rm", "t001"]) == 0
+    assert main(["scene", "rm", "s01"]) == 0
+    assert main(["character", "rm", "mei"]) == 0
+    _, loaded = load(root)
+    assert loaded.takes == []
+    assert loaded.scenes == {}
+    assert loaded.characters == {}
+    capsys.readouterr()
+
+
+def test_cli_rejects_zero_duration(
+    sample_project: tuple[Path, Bible],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root, _bible = sample_project
+    monkeypatch.chdir(root)
+    assert main(["take", "add", "s01", "--beat", "x", "--duration", "0"]) == 2
+
+
+def test_cli_rejects_path_like_ids(
+    sample_project: tuple[Path, Bible],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root, _bible = sample_project
+    monkeypatch.chdir(root)
+    assert main(["character", "add", "../mei"]) == 2
+
+
+def test_cli_explicit_project_missing_does_not_walk_up(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    parent = init_project(tmp_path / "parent")
+    empty = parent / "nested"
+    empty.mkdir()
+    monkeypatch.chdir(empty)
+    assert main(["-C", str(empty), "list"]) == 2

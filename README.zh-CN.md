@@ -47,9 +47,13 @@ shotbible check
 | 命令 | 作用 |
 |------|------|
 | `init [dir]` | 创建 `bible.yaml`、`refs/`、`takes/` |
+| `set --title --aspect --style --duration-hint` | 改项目标题 / 画幅 / 风格 |
 | `character add ID --name --look [--ref PATH]` | 锁定角色（`--ref` 会复制到 `refs/`） |
+| `character rm ID` | 删除角色（仍被引用则拒绝） |
 | `scene add ID --title --setting --cast ID` | 锁定场景与出场角色 |
+| `scene rm ID` | 删除场景（仍有 take 则拒绝） |
 | `take add SCENE --beat TEXT [--file PATH] [--model NAME]` | 记录一条 take / beat |
+| `take rm ID` | 删除一条 take |
 | `prompt SCENE [--beat TEXT] [--character ID] [--kind image\|video]` | 编译锁定提示词 |
 | `prompt-take TAKE` | 按已存 take 编译锁定提示词 |
 | `check` | 检查缺失参考图、未知角色、空场景 |

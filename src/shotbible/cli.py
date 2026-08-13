@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import argparse
-import io
 import sys
 from pathlib import Path
 
 from . import __version__
 from .check import check_bible
 from .export import export_json, export_markdown
-from .models import Character, Scene, Take
+from .models import Character, ParseError, Scene, Take, parse_duration
 from .prompt import compile_prompt, compile_take
 from .store import (
     StoreError,
@@ -16,6 +15,9 @@ from .store import (
     copy_ref,
     init_project,
     load,
+    remove_character,
+    remove_scene,
+    remove_take,
     require_character,
     require_scene,
     save,
@@ -30,7 +32,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         return args.func(args)
-    except (StoreError, FileNotFoundError) as exc:
+    except (StoreError, ParseError, FileNotFoundError) as exc:
         print(str(exc), file=sys.stderr)
         return 2
 
@@ -70,6 +72,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_char_add.add_argument("--ref", action="append", dest="refs", metavar="PATH")
     p_char_add.add_argument("--do-not", action="append", dest="do_not", metavar="TEXT")
     p_char_add.set_defaults(func=cmd_character_add)
+    p_char_rm = char_sub.add_parser("rm", parents=[common], help="remove a character")
+    p_char_rm.add_argument("id", metavar="ID")
+    p_char_rm.set_defaults(func=cmd_character_rm)
 
     p_scene = sub.add_parser("scene", parents=[common], help="manage scenes")
     scene_sub = p_scene.add_subparsers(dest="scene_cmd", required=True)
@@ -82,6 +87,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_scene_add.add_argument("--cast", action="append", metavar="ID")
     p_scene_add.add_argument("--ref", action="append", dest="refs", metavar="PATH")
     p_scene_add.set_defaults(func=cmd_scene_add)
+    p_scene_rm = scene_sub.add_parser("rm", parents=[common], help="remove a scene")
+    p_scene_rm.add_argument("id", metavar="ID")
+    p_scene_rm.set_defaults(func=cmd_scene_rm)
 
     p_take = sub.add_parser("take", parents=[common], help="manage takes")
     take_sub = p_take.add_subparsers(dest="take_cmd", required=True)
@@ -94,6 +102,16 @@ def build_parser() -> argparse.ArgumentParser:
     p_take_add.add_argument("--duration", type=int, default=None, metavar="N")
     p_take_add.add_argument("--notes", default=None, metavar="TEXT")
     p_take_add.set_defaults(func=cmd_take_add)
+    p_take_rm = take_sub.add_parser("rm", parents=[common], help="remove a take")
+    p_take_rm.add_argument("take_id", metavar="TAKE_ID")
+    p_take_rm.set_defaults(func=cmd_take_rm)
+
+    p_set = sub.add_parser("set", parents=[common], help="update project title, aspect, style")
+    p_set.add_argument("--title", default=None)
+    p_set.add_argument("--aspect", default=None)
+    p_set.add_argument("--style", default=None)
+    p_set.add_argument("--duration-hint", default=None, dest="duration_hint")
+    p_set.set_defaults(func=cmd_set)
 
     p_prompt = sub.add_parser("prompt", parents=[common], help="compile a prompt for a scene")
     p_prompt.add_argument("scene", metavar="SCENE")
@@ -217,6 +235,60 @@ def cmd_scene_add(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_character_rm(args: argparse.Namespace) -> int:
+    root, bible = _load(args)
+    cid = _require_id(args.id, "character")
+    remove_character(bible, cid)
+    save(root, bible)
+    print(f"character {cid} removed")
+    return 0
+
+
+def cmd_scene_rm(args: argparse.Namespace) -> int:
+    root, bible = _load(args)
+    sid = _require_id(args.id, "scene")
+    remove_scene(bible, sid)
+    save(root, bible)
+    print(f"scene {sid} removed")
+    return 0
+
+
+def cmd_take_rm(args: argparse.Namespace) -> int:
+    root, bible = _load(args)
+    take = remove_take(bible, _require_id(args.take_id, "take"))
+    save(root, bible)
+    print(f"take {take.id} removed")
+    return 0
+
+
+def cmd_set(args: argparse.Namespace) -> int:
+    root, bible = _load(args)
+    changed: list[str] = []
+    if args.title is not None:
+        title = args.title.strip()
+        if not title:
+            raise StoreError("title cannot be empty")
+        bible.title = title
+        changed.append("title")
+    if args.aspect is not None:
+        aspect = args.aspect.strip()
+        if not aspect:
+            raise StoreError("aspect cannot be empty")
+        bible.aspect = aspect
+        changed.append("aspect")
+    if args.style is not None:
+        bible.style = args.style
+        changed.append("style")
+    if args.duration_hint is not None:
+        bible.duration_hint = args.duration_hint
+        changed.append("duration_hint")
+    if not changed:
+        raise StoreError("nothing to set; pass --title, --aspect, --style, or --duration-hint")
+    save(root, bible)
+    print("updated " + ", ".join(changed))
+    return 0
+
+
 def cmd_take_add(args: argparse.Namespace) -> int:
     root, bible = _load(args)
     sid = _require_id(args.scene, "scene")
@@ -224,6 +296,7 @@ def cmd_take_add(args: argparse.Namespace) -> int:
     character_id = args.character or ""
     if character_id:
         require_character(bible, character_id)
+    duration = parse_duration(args.duration) if args.duration is not None else None
     take = add_take(
         bible,
         Take(
@@ -233,7 +306,7 @@ def cmd_take_add(args: argparse.Namespace) -> int:
             character=character_id,
             file=args.file or "",
             model=args.model or "",
-            duration=args.duration,
+            duration=duration,
             notes=args.notes or "",
         ),
     )
@@ -335,7 +408,7 @@ def cmd_list(args: argparse.Namespace) -> int:
         bits = [take.id, take.scene]
         if take.character:
             bits.append(take.character)
-        if take.duration:
+        if take.duration is not None:
             bits.append(f"{take.duration}s")
         if take.beat:
             beat = take.beat.replace("\n", " ")
@@ -355,6 +428,8 @@ def _require_id(value: str, kind: str) -> str:
     item_id = (value or "").strip()
     if not item_id:
         raise StoreError(f"{kind} id is empty")
+    if item_id in {".", ".."} or "/" in item_id or "\\" in item_id:
+        raise StoreError(f"{kind} id cannot contain a path: {item_id}")
     return item_id
 
 
@@ -409,24 +484,17 @@ def _changed_line(
 
 
 def _ensure_utf8() -> None:
-    sys.stdout = _utf8_stream(sys.stdout)
-    sys.stderr = _utf8_stream(sys.stderr)
-
-
-def _utf8_stream(stream):
-    if stream is None:
-        return stream
-    encoding = (getattr(stream, "encoding", None) or "").replace("-", "").lower()
-    if encoding == "utf8":
-        return stream
-    reconfigure = getattr(stream, "reconfigure", None)
-    if callable(reconfigure):
-        try:
-            reconfigure(encoding="utf-8", errors="replace")
-            return stream
-        except (OSError, ValueError, AttributeError):
-            pass
-    buffer = getattr(stream, "buffer", None)
-    if buffer is None:
-        return stream
-    return io.TextIOWrapper(buffer, encoding="utf-8", errors="replace", line_buffering=True)
+    for stream in (sys.stdout, sys.stderr):
+        if stream is None:
+            continue
+        encoding = (getattr(stream, "encoding", None) or "").lower().replace("-", "")
+        if encoding in {"utf8", "utf8sig"}:
+            continue
+        if encoding not in {"cp936", "gbk", "gb2312", "mbcs", "charmap", "ascii", "cp1252"}:
+            continue
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except (OSError, ValueError, AttributeError):
+                continue

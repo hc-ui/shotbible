@@ -47,9 +47,13 @@ A ready-made 9:16 campus-night bible lives in [`examples/campus-night/bible.yaml
 | Command | What it does |
 |---------|----------------|
 | `init [dir]` | Create `bible.yaml`, `refs/`, `takes/` |
+| `set --title --aspect --style --duration-hint` | Update project metadata |
 | `character add ID --name --look [--ref PATH]` | Lock a character (copies `--ref` into `refs/`) |
+| `character rm ID` | Remove a character (refuses if still cast) |
 | `scene add ID --title --setting --cast ID` | Lock a scene and its cast |
+| `scene rm ID` | Remove a scene (refuses if it still has takes) |
 | `take add SCENE --beat TEXT [--file PATH] [--model NAME]` | Record a take / beat |
+| `take rm ID` | Remove a take |
 | `prompt SCENE [--beat TEXT] [--character ID] [--kind image\|video]` | Compile a locked prompt |
 | `prompt-take TAKE` | Compile a locked prompt from a stored take |
 | `check` | Flag missing refs, unknown cast, empty scenes |
