@@ -1,0 +1,51 @@
+version: 1
+title: 夜校最后一课
+aspect: "9:16"
+duration_hint: 45s
+style: "cinematic 9:16, Chinese university campus at night, cool fluorescent mixed with sodium streetlight, quiet after rain"
+characters:
+  mei:
+    name: 阿梅
+    role: lead
+    look: "22-year-old Chinese woman, short black hair slightly damp from rain, oversized navy hoodie, worn canvas backpack, no makeup"
+    voice: "soft Mandarin, almost whispering, tired but steady"
+    do_not:
+      - change hair length
+      - add glasses
+      - smile at camera
+      - change hoodie color
+    refs: []
+scenes:
+  s01:
+    title: 夜教室
+    setting: "empty university classroom at night, last row of desks, one open laptop glowing, rain on the windows"
+    lighting: "cool overhead fluorescent, faint city glow through wet glass"
+    camera: "slow push-in, 35mm, 9:16, handheld micro-shake"
+    cast:
+      - mei
+    refs: []
+  s02:
+    title: 走廊
+    setting: "long campus hallway after class, flickering exit sign, wet footprints on linoleum, vending machine hum"
+    lighting: "sickly green-white tubes, one darker stretch near the stairwell"
+    camera: "tracking side-on, 9:16, keep her mid-frame"
+    cast:
+      - mei
+    refs: []
+takes:
+  - id: t001
+    scene: s01
+    character: mei
+    beat: 阿梅坐在最后一排，打开笔记本，屏幕亮起，她没有看镜头
+    file: ""
+    model: grok-imagine-video-1.5
+    duration: 6
+    notes: lock hoodie + short hair
+  - id: t002
+    scene: s02
+    character: mei
+    beat: 她背着包走过空走廊，脚步声很轻，在转角停了一下，仍不看镜头
+    file: ""
+    model: grok-imagine-video-1.5
+    duration: 6
+    notes: same navy hoodie as t001

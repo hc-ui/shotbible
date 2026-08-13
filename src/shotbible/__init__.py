@@ -1,0 +1,3 @@
+"""shotbible — local continuity bible for AI image/video productions."""
+
+__version__ = "0.1.0"
