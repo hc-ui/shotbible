@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1 — 2026-08-17
+
+- `check` warns when a character `look` is too short to lock identity
+
 ## 0.2.0 — 2026-08-17
 
 - Scene prompts include **every** cast member, not only the first / `--character`

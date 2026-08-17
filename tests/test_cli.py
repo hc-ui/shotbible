@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from shotbible import __version__
 from shotbible.cli import main
 from shotbible.models import Bible
 from shotbible.store import init_project, load, save
@@ -177,7 +178,7 @@ def test_cli_version(capsys: pytest.CaptureFixture[str]) -> None:
     with pytest.raises(SystemExit) as exc:
         main(["--version"])
     assert exc.value.code == 0
-    assert "0.2.0" in capsys.readouterr().out
+    assert __version__ in capsys.readouterr().out
 
 
 def test_cli_set_and_remove(

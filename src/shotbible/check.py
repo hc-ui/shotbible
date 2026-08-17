@@ -177,6 +177,14 @@ def check_bible(root: Path, bible: Bible) -> list[Issue]:
         key = _normalize_look(character.look)
         if not key:
             continue
+        if len(key) < 12:
+            issues.append(
+                Issue(
+                    "warn",
+                    "THIN_LOOK",
+                    f"character '{cid}' look is too short to lock identity",
+                )
+            )
         look_groups.setdefault(key, []).append(cid)
     for ids in look_groups.values():
         if len(ids) < 2:

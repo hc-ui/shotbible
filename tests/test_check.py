@@ -112,6 +112,16 @@ def test_check_flags_duplicate_setting(tmp_path: Path) -> None:
     assert "DUPLICATE_SETTING" in _codes(issues)
 
 
+def test_check_flags_thin_look(tmp_path: Path) -> None:
+    root = tmp_path / "thin"
+    root.mkdir()
+    write_dummy_png(root / "refs" / "mei" / "front.png")
+    bible = make_sample_bible()
+    bible.characters["mei"].look = "cat"
+    save(root, bible)
+    assert "THIN_LOOK" in _codes(check_bible(root, bible))
+
+
 def test_check_clean_bible_skips_required_codes(tmp_path: Path) -> None:
     root = tmp_path / "clean"
     root.mkdir()
