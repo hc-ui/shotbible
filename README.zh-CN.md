@@ -10,13 +10,24 @@ AI 视频工具会在镜次之间忘掉脸、服装和光线。shotbible 把一�
 
 [English](README.md)
 
+编译结果长这样（来自 [`examples/campus-night`](examples/campus-night/bible.yaml)）：
+
+```text
+Look: 22-year-old Chinese woman, short black hair slightly damp from rain,
+      oversized navy hoodie, worn canvas backpack, no makeup
+Do not: change hair length; add glasses; smile at camera; change hoodie color
+Setting: empty university classroom at night, last row of desks, one open laptop
+Beat: 阿梅坐在最后一排，打开笔记本，屏幕亮起，她没有看镜头
+```
+
+把生成的文件贴进你的图/视频模型。编译器不会发明圣经里没有的衣服或场景。
+
 ## 安装
 
-从克隆的仓库安装（推荐）：
+Python 3.10+，无第三方依赖。尚未上 PyPI：
 
 ```bash
-pip install -e .
-# 或：python -m shotbible --help
+pip install git+https://github.com/hc-ui/shotbible.git
 ```
 
 开发 / 测试：

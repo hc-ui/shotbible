@@ -10,13 +10,24 @@ AI video tools forget faces, wardrobe, and lighting between takes. shotbible kee
 
 [简体中文](README.zh-CN.md)
 
+Compiled output looks like this (from [`examples/campus-night`](examples/campus-night/bible.yaml)):
+
+```text
+Look: 22-year-old Chinese woman, short black hair slightly damp from rain,
+      oversized navy hoodie, worn canvas backpack, no makeup
+Do not: change hair length; add glasses; smile at camera; change hoodie color
+Setting: empty university classroom at night, last row of desks, one open laptop
+Beat: 阿梅坐在最后一排，打开笔记本，屏幕亮起，她没有看镜头
+```
+
+Paste that file into your image/video model. The compiler never invents wardrobe or locations that are not in the bible.
+
 ## Install
 
-From a clone (recommended):
+Python 3.10+, zero third-party dependencies. Not on PyPI yet:
 
 ```bash
-pip install -e .
-# or: python -m shotbible --help
+pip install git+https://github.com/hc-ui/shotbible.git
 ```
 
 Dev / tests:
