@@ -96,6 +96,20 @@ def test_cli_add_character_scene_take_and_prompt(
     assert NAME in out or "mei" in out
 
 
+def test_cli_prompt_all_writes_each_scene(
+    sample_project: tuple[Path, Bible],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root, _bible = sample_project
+    monkeypatch.chdir(root)
+    assert main(["prompt", "--all"]) == 0
+    path = root / "takes" / "s01.prompt.txt"
+    assert path.is_file()
+    text = path.read_text(encoding="utf-8")
+    assert NAME in text
+    assert "classroom" in text.lower() or "desks" in text
+
+
 def test_cli_check_exit_codes(
     sample_project: tuple[Path, Bible], monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -163,7 +177,7 @@ def test_cli_version(capsys: pytest.CaptureFixture[str]) -> None:
     with pytest.raises(SystemExit) as exc:
         main(["--version"])
     assert exc.value.code == 0
-    assert "0.1.2" in capsys.readouterr().out
+    assert "0.2.0" in capsys.readouterr().out
 
 
 def test_cli_set_and_remove(

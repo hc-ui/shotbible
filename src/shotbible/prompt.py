@@ -60,16 +60,16 @@ def _compile(
                 beat = take.beat
             if not character_id and take.character:
                 character_id = take.character
-    character = _resolve_character(bible, scene, character_id)
+    characters = _resolve_characters(bible, scene, character_id)
     kind = parse_kind(kind)
     sections = [
         f"AI {kind} prompt — {bible.title} / {scene.title}",
-        _identity_lock(character),
-        _do_not(character),
+        _identity_lock(characters),
+        _do_not(characters),
         _scene_lock(bible, scene),
         _camera_section(bible, scene, duration),
         _beat_section(beat),
-        _ref_lock(character, scene),
+        _ref_lock(characters, scene),
         _IMAGE_CLOSER if kind == "image" else _VIDEO_CLOSER,
     ]
     text = "\n\n".join(part for part in sections if part)
@@ -83,22 +83,32 @@ def _latest_take(bible: Bible, scene_id: str) -> Take | None:
     return None
 
 
-def _resolve_character(bible: Bible, scene: Scene, character_id: str) -> Character | None:
+def _resolve_characters(
+    bible: Bible, scene: Scene, character_id: str
+) -> list[Character]:
+    ordered: list[Character] = []
+    seen: set[str] = set()
     if character_id:
-        return require_character(bible, character_id)
+        primary = require_character(bible, character_id)
+        ordered.append(primary)
+        seen.add(primary.id)
     for cid in scene.cast:
+        if cid in seen:
+            continue
         found = bible.characters.get(cid)
-        if found is not None:
-            return found
-    return None
+        if found is None:
+            continue
+        ordered.append(found)
+        seen.add(cid)
+    return ordered
 
 
-def _identity_lock(character: Character | None) -> str:
-    if character is None:
-        return ""
+def _one_character(character: Character) -> str:
     lines: list[str] = []
     if character.name:
         lines.append(f"Name: {character.name}")
+    if character.id and character.id != character.name:
+        lines.append(f"Id: {character.id}")
     if character.role:
         lines.append(f"Role: {character.role}")
     if character.look:
@@ -108,10 +118,28 @@ def _identity_lock(character: Character | None) -> str:
     return "\n".join(lines)
 
 
-def _do_not(character: Character | None) -> str:
-    if character is None:
+def _identity_lock(characters: list[Character]) -> str:
+    if not characters:
         return ""
-    items = [item.strip() for item in character.do_not if str(item).strip()]
+    if len(characters) == 1:
+        return _one_character(characters[0])
+    blocks = [_one_character(item) for item in characters]
+    numbered = [f"[{index}] {block}" for index, block in enumerate(blocks, start=1)]
+    return "Cast:\n\n" + "\n\n".join(numbered)
+
+
+def _do_not(characters: list[Character]) -> str:
+    items: list[str] = []
+    for character in characters:
+        label = character.name or character.id
+        for raw in character.do_not:
+            text = str(raw).strip()
+            if not text:
+                continue
+            if len(characters) > 1 and label:
+                items.append(f"{label}: {text}")
+            else:
+                items.append(text)
     if not items:
         return ""
     return "Do not: " + "; ".join(items)
@@ -150,8 +178,8 @@ def _beat_section(beat: str) -> str:
     return f"Beat: {text}"
 
 
-def _ref_lock(character: Character | None, scene: Scene) -> str:
-    char_refs = bool(character and character.refs)
+def _ref_lock(characters: list[Character], scene: Scene) -> str:
+    char_refs = any(character.refs for character in characters)
     if char_refs or scene.refs:
         return _REF_LOCK
     return ""

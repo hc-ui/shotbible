@@ -154,6 +154,24 @@ def check_bible(root: Path, bible: Bible) -> list[Issue]:
                     )
                 )
 
+    setting_groups: dict[str, list[str]] = {}
+    for sid, scene in bible.scenes.items():
+        key = _normalize_look(scene.setting)
+        if not key:
+            continue
+        setting_groups.setdefault(key, []).append(sid)
+    for ids in setting_groups.values():
+        if len(ids) < 2:
+            continue
+        joined = ", ".join(f"'{item}'" for item in sorted(ids))
+        issues.append(
+            Issue(
+                "warn",
+                "DUPLICATE_SETTING",
+                f"scenes {joined} share the same setting",
+            )
+        )
+
     look_groups: dict[str, list[str]] = {}
     for cid, character in bible.characters.items():
         key = _normalize_look(character.look)

@@ -66,6 +66,7 @@ takes:
 - `shotbible take rm ID`
 - `shotbible character show ID` / `scene show` / `take show`
 - `shotbible prompt SCENE [-o [FILE]]`
+- `shotbible prompt --all`
 - `shotbible prompt-take TAKE [-o [FILE]]`
 - `shotbible check [--strict] [--json]`
 - `shotbible export [--format md|json]`
@@ -84,6 +85,7 @@ Always emit, in this order:
 
 Never invent wardrobe or location details that are not in the bible.
 If `prompt SCENE` is called without `--beat`, use the latest take of that scene.
+A scene with multiple `cast` members emits every character, not only the first.
 
 ## Check rules
 
@@ -92,6 +94,7 @@ If `prompt SCENE` is called without `--beat`, use the latest take of that scene.
 - take.scene must exist
 - warn if a lead / 主角 / 女主 / 男主 character has zero refs (`non-lead` is not a lead)
 - warn if two characters have nearly identical `look` strings
+- warn if two scenes share the same setting
 - warn if a scene has no takes
 - error if a take `file` is set but missing
 - error if two takes share an id

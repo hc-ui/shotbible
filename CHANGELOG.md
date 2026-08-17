@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0 — 2026-08-17
+
+- Scene prompts include **every** cast member, not only the first / `--character`
+- `shotbible prompt --all` writes `takes/<scene>.prompt.txt` for each scene
+- `check` warns when two scenes share the same setting
+
 ## 0.1.2 — 2026-08-13
 
 - `prompt` / `prompt-take -o` write a prompt file (`takes/<id>.prompt.txt` by default)

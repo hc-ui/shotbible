@@ -127,7 +127,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_set.set_defaults(func=cmd_set)
 
     p_prompt = sub.add_parser("prompt", parents=[common], help="compile a prompt for a scene")
-    p_prompt.add_argument("scene", metavar="SCENE")
+    p_prompt.add_argument("scene", nargs="?", metavar="SCENE")
+    p_prompt.add_argument(
+        "--all",
+        action="store_true",
+        dest="all_scenes",
+        help="write a prompt file for every scene",
+    )
     p_prompt.add_argument("--beat", default=None, metavar="TEXT")
     p_prompt.add_argument("--character", default=None, metavar="ID")
     p_prompt.add_argument("--kind", choices=("image", "video"), default="video")
@@ -375,6 +381,18 @@ def cmd_take_add(args: argparse.Namespace) -> int:
 
 def cmd_prompt(args: argparse.Namespace) -> int:
     root, bible = _load(args)
+    if args.all_scenes:
+        if not bible.scenes:
+            raise StoreError("no scenes to compile")
+        wrote = 0
+        for sid in bible.scenes:
+            text = compile_prompt(bible, sid, kind=args.kind)
+            _emit_prompt(root, text, "", f"{sid}.prompt.txt")
+            wrote += 1
+        print(f"wrote {wrote} prompt file(s)")
+        return 0
+    if not args.scene:
+        raise StoreError("scene id is required (or pass --all)")
     sid = _require_id(args.scene, "scene")
     require_scene(bible, sid)
     character_id = args.character or ""

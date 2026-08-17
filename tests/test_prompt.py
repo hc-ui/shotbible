@@ -79,3 +79,23 @@ def test_compile_prompt_keeps_bible_only_details() -> None:
     # Location lock stays on the classroom; do not drag in the unused hallway.
     assert "hallway" not in text.lower()
     assert "走廊" not in text
+
+
+def test_compile_prompt_includes_every_cast_member() -> None:
+    from shotbible.models import Character
+
+    bible = make_sample_bible()
+    bible.characters["ergou"] = Character(
+        id="ergou",
+        name="二狗",
+        role="lead",
+        look="flat-faced orange tabby, navy apron, white fish embroidery",
+        do_not=["remove the apron"],
+    )
+    bible.scenes["s01"].cast = ["mei", "ergou"]
+    text = _text(compile_prompt(bible, "s01", beat=BEAT, kind="video"))
+    assert NAME in text
+    assert "二狗" in text
+    assert "white fish embroidery" in text
+    assert "Cast:" in text
+    assert "remove the apron" in text

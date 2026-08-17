@@ -8,7 +8,7 @@ from shotbible.check import check_bible
 from shotbible.models import Character, ParseError, Scene, Take, parse_duration
 from shotbible.store import save
 
-from conftest import make_sample_bible, write_dummy_png
+from conftest import SETTING, make_sample_bible, write_dummy_png
 
 
 def _codes(issues: list[object]) -> set[str]:
@@ -92,6 +92,24 @@ def test_check_flags_scene_without_takes(tmp_path: Path) -> None:
     assert "s02" in str(message)
     level = str(getattr(issue, "level", None) or issue["level"]).lower()  # type: ignore[index]
     assert level in {"warn", "warning"}
+
+
+def test_check_flags_duplicate_setting(tmp_path: Path) -> None:
+    root = tmp_path / "dup-set"
+    root.mkdir()
+    write_dummy_png(root / "refs" / "mei" / "front.png")
+    bible = make_sample_bible(with_take=True)
+    bible.scenes["s02"] = Scene(
+        id="s02",
+        title="同一教室",
+        setting=SETTING,
+        lighting="other light",
+        camera="static",
+        cast=["mei"],
+    )
+    save(root, bible)
+    issues = check_bible(root, bible)
+    assert "DUPLICATE_SETTING" in _codes(issues)
 
 
 def test_check_clean_bible_skips_required_codes(tmp_path: Path) -> None:

@@ -69,6 +69,7 @@ A ready-made 9:16 campus-night bible lives in [`examples/campus-night/bible.yaml
 | `take add SCENE --beat TEXT [--file PATH] [--model NAME]` | Record a take (copies `--file` into `takes/`) |
 | `take rm ID` / `take show ID` | Remove or print a take |
 | `prompt SCENE [-o [FILE]]` | Compile a locked prompt; `-o` saves it |
+| `prompt --all` | Write `takes/<scene>.prompt.txt` for every scene |
 | `prompt-take TAKE [-o [FILE]]` | Compile from a stored take |
 | `check [--strict] [--json]` | Validate; `--strict` fails on warnings |
 | `export [--format md\|json]` | Dump the bible |

@@ -68,6 +68,7 @@ shotbible check
 | `take add SCENE --beat TEXT [--file PATH] [--model NAME]` | 记录 take（`--file` 复制进 `takes/`） |
 | `take rm ID` / `take show ID` | 删除或查看 take |
 | `prompt SCENE [-o [FILE]]` | 编译锁定提示词；`-o` 存盘 |
+| `prompt --all` | 给每个场景写出 `takes/<scene>.prompt.txt` |
 | `prompt-take TAKE [-o [FILE]]` | 按已存 take 编译 |
 | `check [--strict] [--json]` | 检查；`--strict` 把警告也当失败 |
 | `export [--format md\|json]` | 导出圣经 |
