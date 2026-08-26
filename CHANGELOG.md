@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2 — 2026-08-26
+
+- README 改成如实写运行时依赖 PyYAML（不再写「零第三方依赖」）
+- 损坏的 `takes:` 列表项（字符串 / 空值）现在报错，不再被静默丢掉
+- 测试增加 `compileall` 语法检查
+
 ## 0.2.1 — 2026-08-17
 
 - `check` warns when a character `look` is too short to lock identity
