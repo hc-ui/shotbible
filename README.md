@@ -24,7 +24,7 @@ Paste that file into your image/video model. The compiler never invents wardrobe
 
 ## Install
 
-Python 3.10+, zero third-party dependencies. Not on PyPI yet:
+Python 3.10+. One runtime dependency: **PyYAML** (for `bible.yaml`). Not on PyPI yet:
 
 ```bash
 pip install git+https://github.com/hc-ui/shotbible.git
@@ -53,7 +53,7 @@ shotbible check
 
 `prompt -o` writes `takes/s01.prompt.txt`. Paste that file into your video model. New projects default to **9:16**.
 
-A ready-made 9:16 campus-night bible lives in [`examples/campus-night/bible.yaml`](examples/campus-night/bible.yaml).
+A ready-made 9:16 campus-night bible lives in [`examples/campus-night`](examples/campus-night/bible.yaml).
 
 ## Commands
 
