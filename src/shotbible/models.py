@@ -150,6 +150,17 @@ class Take:
         return payload
 
 
+def _parse_takes(takes_raw: Any) -> list[Take]:
+    takes: list[Take] = []
+    for index, item in enumerate(takes_raw or []):
+        if not isinstance(item, dict):
+            raise ParseError(
+                f"takes[{index}] must be a mapping, got {type(item).__name__}"
+            )
+        takes.append(Take.from_dict(item))
+    return takes
+
+
 @dataclass
 class Bible:
     title: str = "untitled"
@@ -191,7 +202,7 @@ class Bible:
                 str(sid): Scene.from_dict(str(sid), s if isinstance(s, dict) else {})
                 for sid, s in scenes_raw.items()
             },
-            takes=[Take.from_dict(t) for t in takes_raw if isinstance(t, dict)],
+            takes=_parse_takes(takes_raw),
             version=version,
         )
 
