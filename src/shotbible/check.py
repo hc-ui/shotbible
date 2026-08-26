@@ -217,7 +217,13 @@ def _ref_exists(root: Path, ref: str) -> bool:
     path = Path(ref)
     if path.is_absolute():
         return path.exists()
-    return (root / ref).exists()
+    root = root.resolve()
+    candidate = root / ref
+    try:
+        candidate.resolve().relative_to(root)
+    except ValueError:
+        return False
+    return candidate.exists()
 
 
 def _normalize_look(look: str) -> str:
