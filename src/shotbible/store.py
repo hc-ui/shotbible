@@ -111,7 +111,7 @@ def copy_asset(root: Path, src: Path, kind: str, bucket: str) -> str:
 
 def _safe_id(value: str) -> str:
     cleaned = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in value.strip())
-    cleaned = cleaned.strip("-") or "item"
+    cleaned = cleaned.strip("-_") or "item"
     return cleaned
 
 
