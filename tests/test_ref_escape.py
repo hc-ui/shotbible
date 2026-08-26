@@ -17,3 +17,16 @@ def test_check_rejects_relative_path_escape(tmp_path: Path) -> None:
 
     issues = check_bible(root, bible)
     assert any(getattr(issue, "code", None) == "MISSING_REF" for issue in issues)
+
+
+def test_check_rejects_absolute_path_outside_project(tmp_path: Path) -> None:
+    root = tmp_path / "abs"
+    root.mkdir()
+    outside = tmp_path / "outside.png"
+    write_dummy_png(outside)
+    bible = make_sample_bible(with_ref=False)
+    bible.characters["mei"].refs = [str(outside.resolve())]
+    save(root, bible)
+
+    issues = check_bible(root, bible)
+    assert any(getattr(issue, "code", None) == "MISSING_REF" for issue in issues)

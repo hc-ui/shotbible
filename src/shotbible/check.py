@@ -214,14 +214,13 @@ def _listed_refs(bible: Bible) -> set[str]:
 def _ref_exists(root: Path, ref: str) -> bool:
     if not str(ref).strip():
         return False
-    path = Path(ref)
-    if path.is_absolute():
-        return path.exists()
     root = root.resolve()
-    candidate = root / ref
+    path = Path(ref)
+    candidate = path if path.is_absolute() else root / ref
     try:
-        candidate.resolve().relative_to(root)
-    except ValueError:
+        resolved = candidate.resolve()
+        resolved.relative_to(root)
+    except (ValueError, OSError):
         return False
     return candidate.exists()
 
