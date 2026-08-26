@@ -53,7 +53,7 @@ shotbible check
 
 `prompt -o` writes `takes/s01.prompt.txt`. Paste that file into your video model. New projects default to **9:16**.
 
-A ready-made 9:16 campus-night bible lives in [`examples/campus-night`](examples/campus-night/bible.yaml).
+A ready-made 9:16 campus-night bible lives in [`examples/campus-night/bible.yaml`](examples/campus-night/bible.yaml).
 
 ## Commands
 
