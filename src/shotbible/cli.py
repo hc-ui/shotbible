@@ -382,11 +382,25 @@ def cmd_take_add(args: argparse.Namespace) -> int:
 def cmd_prompt(args: argparse.Namespace) -> int:
     root, bible = _load(args)
     if args.all_scenes:
+        if args.output not in (None, ""):
+            raise StoreError(
+                "prompt --all writes one file per scene under takes/; "
+                "do not pass -o FILE (use -o with no path for the default)"
+            )
         if not bible.scenes:
             raise StoreError("no scenes to compile")
+        character_id = args.character or ""
+        if character_id:
+            require_character(bible, character_id)
         wrote = 0
         for sid in bible.scenes:
-            text = compile_prompt(bible, sid, kind=args.kind)
+            text = compile_prompt(
+                bible,
+                sid,
+                beat=args.beat or "",
+                character_id=character_id,
+                kind=args.kind,
+            )
             _emit_prompt(root, text, "", f"{sid}.prompt.txt")
             wrote += 1
         print(f"wrote {wrote} prompt file(s)")

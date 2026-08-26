@@ -171,6 +171,14 @@ def test_load_invalid_duration_is_store_error(tmp_path: Path) -> None:
         load(root)
 
 
+def test_copy_ref_rejects_directory(tmp_path: Path) -> None:
+    root = init_project(tmp_path / "refs-dir")
+    folder = tmp_path / "album"
+    folder.mkdir()
+    with pytest.raises(StoreError, match="not a file"):
+        copy_ref(root, folder, "mei")
+
+
 def test_example_campus_night_loads() -> None:
     root, bible = load(EXAMPLE)
     assert root == EXAMPLE.resolve()
