@@ -5,7 +5,7 @@ from pathlib import Path
 
 import yaml
 
-from .models import Bible, ParseError, Take
+from .models import Bible, Character, ParseError, Scene, Take
 
 BIBLE_NAME = "bible.yaml"
 
@@ -111,7 +111,7 @@ def copy_asset(root: Path, src: Path, kind: str, bucket: str) -> str:
 
 def _safe_id(value: str) -> str:
     cleaned = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in value.strip())
-    cleaned = cleaned.strip("-_") or "item"
+    cleaned = cleaned.strip("-") or "item"
     return cleaned
 
 
