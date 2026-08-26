@@ -104,6 +104,16 @@ def test_load_non_mapping_raises(tmp_path: Path) -> None:
         load(root)
 
 
+def test_load_rejects_non_mapping_take(tmp_path: Path) -> None:
+    root = init_project(tmp_path / "bad-take")
+    (root / "bible.yaml").write_text(
+        "version: 1\ntitle: x\ncharacters: {}\nscenes: {}\ntakes:\n  - just-a-string\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(StoreError, match=r"takes\[0\]"):
+        load(root)
+
+
 def test_copy_ref_writes_under_refs(tmp_path: Path) -> None:
     root = init_project(tmp_path / "refs-proj")
     src = write_dummy_png(tmp_path / "face.png")

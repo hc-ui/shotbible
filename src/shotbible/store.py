@@ -5,7 +5,7 @@ from pathlib import Path
 
 import yaml
 
-from .models import Bible, ParseError, Take
+from .models import Bible, Character, ParseError, Scene, Take
 
 BIBLE_NAME = "bible.yaml"
 

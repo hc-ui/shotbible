@@ -24,7 +24,7 @@ Paste that file into your image/video model. The compiler never invents wardrobe
 
 ## Install
 
-Python 3.10+, zero third-party dependencies. Not on PyPI yet:
+Python 3.10+. One runtime dependency: **PyYAML** (for `bible.yaml`). Not on PyPI yet:
 
 ```bash
 pip install git+https://github.com/hc-ui/shotbible.git

@@ -24,7 +24,7 @@ Beat: 阿梅坐在最后一排，打开笔记本，屏幕亮起，她没有看�
 
 ## 安装
 
-Python 3.10+，无第三方依赖。尚未上 PyPI：
+Python 3.10+。运行时只依赖 **PyYAML**（读写 `bible.yaml`）。尚未上 PyPI：
 
 ```bash
 pip install git+https://github.com/hc-ui/shotbible.git
