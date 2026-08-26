@@ -53,7 +53,7 @@ shotbible check
 
 `prompt -o` 会写出 `takes/s01.prompt.txt`，把文件内容贴进视频模型即可。新建项目默认 **9:16**。
 
-现成的 9:16 校园夜戏圣经见 [`examples/campus-night`](examples/campus-night/bible.yaml)。
+现成的 9:16 校园夜戏圣经见 [`examples/campus-night/bible.yaml`](examples/campus-night/bible.yaml)。
 
 ## 命令
 
