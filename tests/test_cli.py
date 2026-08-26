@@ -111,6 +111,28 @@ def test_cli_prompt_all_writes_each_scene(
     assert "classroom" in text.lower() or "desks" in text
 
 
+def test_cli_prompt_all_rejects_output_file(
+    sample_project: tuple[Path, Bible],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root, _bible = sample_project
+    monkeypatch.chdir(root)
+    assert main(["prompt", "--all", "-o", "one.txt"]) == 2
+    assert not (root / "one.txt").exists()
+
+
+def test_cli_prompt_all_applies_beat_and_character(
+    sample_project: tuple[Path, Bible],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root, _bible = sample_project
+    monkeypatch.chdir(root)
+    assert main(["prompt", "--all", "--beat", "独自合上笔记本", "--character", "mei"]) == 0
+    text = (root / "takes" / "s01.prompt.txt").read_text(encoding="utf-8")
+    assert "独自合上笔记本" in text
+    assert NAME in text or "mei" in text
+
+
 def test_cli_check_exit_codes(
     sample_project: tuple[Path, Bible], monkeypatch: pytest.MonkeyPatch
 ) -> None:
