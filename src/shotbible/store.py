@@ -99,6 +99,8 @@ def copy_take_file(root: Path, src: Path, take_id: str) -> str:
 
 def copy_asset(root: Path, src: Path, kind: str, bucket: str) -> str:
     src = src.expanduser().resolve()
+    if src.is_dir():
+        raise StoreError(f"not a file: {src}")
     if not src.is_file():
         raise StoreError(f"file not found: {src}")
     dest_dir = root / kind / _safe_id(bucket)
